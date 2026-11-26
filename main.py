@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """Describe Your Ex in One Word: the whole verdict in a single word.
+
 Spelled correctly, with no punctuation tricks to lean on.
-The meaning arrives without a caption attached.
+The meaning arrives without a caption attached — one word, one verdict.
+There is nothing left to argue about after it.
 """
 
 import sys
 
+# The entry never changes: it is the whole submission, fixed in advance.
+# Every check below exists only to prove this one word is well formed
+# before it is written out. Nothing here reads input, touches the
+# network, rolls dice, or looks at the clock.
 ENTRY = 'expired'
 LIMIT = 111
 TARGET = "/output/entry.txt"
 EMDASH = "\u2014"
+MIN_LETTERS = 1
 
 
 def fail(reason):
@@ -18,79 +25,83 @@ def fail(reason):
     raise SystemExit(1)
 
 
-def guard_no_punctuation(text):
-    """Check that every character is a letter or a digit."""
-    return all(ch.isalnum() for ch in text)
+def check_alnum_only(text):
+    """True when every character is a letter or a digit."""
+    return len(text) > 0 and all(ch.isalnum() for ch in text)
 
 
-def guard_starts_lowercase(text):
-    """Check that the first letter is lowercase."""
-    return (not text) or text[0].islower()
+def check_starts_lowercase(text):
+    """True when the first letter is lowercase, or the text is empty."""
+    return text == "" or text[0].islower()
 
 
-def guard_not_blank(text):
-    """Check that the text is not empty after trimming."""
-    return bool(text.strip())
+def check_nonempty(text):
+    """True when trimming the entry leaves something behind."""
+    return len(text.strip()) > 0
 
 
-def guard_within_limit(text):
-    """Check that the text fits inside the character limit."""
+def check_length_ok(text):
+    """True when the entry fits inside the character limit."""
     return len(text) <= LIMIT
 
 
-def guard_single_token(text):
-    """Check that the trimmed text holds exactly one word."""
-    return " " not in text.strip()
+def check_one_word(text):
+    """True when the trimmed entry holds exactly one word."""
+    return len(text.strip().split()) == 1
 
 
-def guard_has_letters(text):
-    """Check that at least one letter is present."""
-    return any(ch.isalpha() for ch in text)
+def check_letters_present(text):
+    """True when the entry holds at least MIN_LETTERS letters."""
+    found = sum(1 for ch in text if ch.isalpha())
+    return found >= MIN_LETTERS
 
 
-def guard_no_control(text):
-    """Check that no character is a control character."""
-    return all(ord(ch) >= 32 for ch in text)
+def check_printable(text):
+    """True when every character is printable, none a control code."""
+    return all(32 <= ord(ch) <= 126 or ord(ch) > 126 for ch in text)
 
 
-def guard_no_edge_space(text):
-    """Check that no leading or trailing space survives."""
-    return text == text.strip()
+def check_trimmed(text):
+    """True when no leading or trailing space survives."""
+    return text.strip() == text
 
 
-def guard_not_digits_only(text):
-    """Check that the trimmed text is not only digits."""
-    return not text.strip().isdigit()
+def check_not_all_digits(text):
+    """True when the trimmed entry is not made of digits alone."""
+    stripped = text.strip()
+    return len(stripped) > 0 and not stripped.isdigit()
 
 
-def guard_no_ragged_spacing(text):
-    """Check that no double space or newline hides inside."""
-    return "  " not in text and "\n" not in text
+def check_clean_spacing(text):
+    """True when no double space or newline hides inside the entry."""
+    return text.find("  ") == -1 and text.find("\n") == -1
 
 
+# Each row is a short name, the check that must hold, and the complaint
+# printed when it does not. The order below is the order the checks run.
 RULES = [
-    ("no_punctuation", guard_no_punctuation, "entry must have no punctuation"),
-    ("starts_lowercase", guard_starts_lowercase, "entry must not start with a capital letter"),
-    ("not_blank", guard_not_blank, "entry is empty"),
-    ("within_limit", guard_within_limit, "entry is longer than the limit"),
-    ("single_token", guard_single_token, "entry must be a single word"),
-    ("has_letters", guard_has_letters, "entry has no letters"),
-    ("no_control", guard_no_control, "entry has control characters"),
-    ("no_edge_space", guard_no_edge_space, "entry has leading or trailing space"),
-    ("not_digits_only", guard_not_digits_only, "entry is digits only"),
-    ("no_ragged_spacing", guard_no_ragged_spacing, "entry has ragged spacing"),
+    ("alnum_only", check_alnum_only, "entry must have no punctuation"),
+    ("starts_lowercase", check_starts_lowercase, "entry must not start with a capital letter"),
+    ("nonempty", check_nonempty, "entry is empty"),
+    ("length_ok", check_length_ok, "entry is longer than the limit"),
+    ("one_word", check_one_word, "entry must be a single word"),
+    ("letters_present", check_letters_present, "entry has no letters"),
+    ("printable", check_printable, "entry has control characters"),
+    ("trimmed", check_trimmed, "entry has leading or trailing space"),
+    ("not_all_digits", check_not_all_digits, "entry is digits only"),
+    ("clean_spacing", check_clean_spacing, "entry has ragged spacing"),
 ]
 
 
 def validate(text):
-    """Run every rule in RULES order; the first failure stops the run."""
-    for slug, guard, message in RULES:
+    """Walk RULES top to bottom; the first failed check stops the run."""
+    for index, (slug, check, message) in enumerate(RULES):
         try:
-            passed = guard(text)
+            ok = check(text)
         except Exception:
-            passed = False
-        if not passed:
-            fail(f"{slug}: {message}")
+            ok = False
+        if not ok:
+            fail(f"rule {index + 1} [{slug}]: {message}")
 
 
 def emit(text):

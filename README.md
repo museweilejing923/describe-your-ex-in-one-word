@@ -10,7 +10,7 @@ The entry:
 
 7 characters, limit 111.
 
-One word, one verdict, no second chances. It reads like a label on a carton in the back of the fridge: short, final, and past its date. The relationship has passed its date and there is nothing left to salvage, and the word says all of that without a caption, an excuse, or a punctuation trick. In a head-to-head vote the word has to read instantly as a judgement on a former partner.
+One word, one verdict, no second chances. It reads like a label on a carton in the back of the fridge: short, final, and past its date. The relationship has passed its date and there is nothing left to salvage, and the word says all of that without a caption, an excuse, or a punctuation trick. In a head-to-head vote the word has to read instantly as a judgement on a former partner. Seven letters, and the whole story is over.
 
 ## Run
 
@@ -20,4 +20,4 @@ python3 main.py
 
 ## How it works
 
-`main.py` runs one fixed word through a table of named rules and writes it to `/output/entry.txt`. The output is fully deterministic: no network, no randomness, no clock. The rules, in table order, are: no punctuation, no initial capital letter, non-empty, within the 111-character limit, exactly one word, contains letters, no control characters, no leading or trailing space, not digits only, and no double spaces or newlines.
+`main.py` runs one fixed word through a table of named checks and writes it to `/output/entry.txt`. The output is fully deterministic: no network, no randomness, no clock. The checks, in table order, are: letters and digits only, no initial capital letter, non-empty, within the 111-character limit, exactly one word, contains letters, every character printable, no leading or trailing space, not digits only, and no double spaces or newlines. Each check is a small named function, and the table pairs it with the complaint printed when it fails — the first failure stops the run before anything is written.
